@@ -1,0 +1,52 @@
+/* Global responsive helpers */
+html, body {
+  height: 100%;
+  /* Prevent accidental horizontal overflow on small devices caused by elements
+     with large min-widths or transforms. Prefer fixing root causes in components,
+     but keep this safe guard to ensure pages stay fixed to the viewport. */
+  overflow-x: hidden;
+}
+
+/* Make images responsive by default */
+img {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+}
+
+/* Note: Do not override Tailwind's `.container` utility here.
+   Tailwind CDN provides responsive max-widths for `.container`.
+   Keep only small global helpers in this file. */
+
+/* Small tweaks for logo area */
+.site-logo-text {
+  line-height: 1;
+}
+
+/* Ensure the long site logo can truncate on small screens to prevent header overflow */
+.site-logo-text {
+  /* Default: no truncation unless on small screens. */
+}
+
+@media (max-width: 1023px) {
+  /* Truncate long logo text on smaller screens to avoid overflow */
+  .site-logo-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    max-width: 180px;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-logo-text {
+    font-size: 1rem; /* 16px */
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .site-logo-text {
+    font-size: 1.125rem; /* 18px */
+  }
+}

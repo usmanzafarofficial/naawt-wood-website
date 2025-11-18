@@ -1,0 +1,54 @@
+CREATE DATABASE IF NOT EXISTS naawt_db;
+USE naawt_db;
+
+-- Admin Users Table
+CREATE TABLE admin_users (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Products Table
+CREATE TABLE products (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  description TEXT,
+  image_url VARCHAR(500),
+  specifications JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Orders Table
+CREATE TABLE orders (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  customer_name VARCHAR(255) NOT NULL,
+  customer_email VARCHAR(255) NOT NULL,
+  customer_phone VARCHAR(20),
+  product_id INT,
+  quantity INT,
+  status VARCHAR(50) DEFAULT 'pending',
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+);
+
+-- Quotes Table
+CREATE TABLE quotes (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  customer_name VARCHAR(255) NOT NULL,
+  customer_email VARCHAR(255) NOT NULL,
+  customer_phone VARCHAR(20),
+  product_ids JSON,
+  details TEXT,
+  status VARCHAR(50) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Insert default admin user
+INSERT INTO admin_users (username, password) VALUES ('admin', '$2b$10$YIjlrHmNkR8K8.8Fwc5bY.vbR8V6C9.K9v9r4K8V7K6K5K4K3K2K');
