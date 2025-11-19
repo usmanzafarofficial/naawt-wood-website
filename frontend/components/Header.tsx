@@ -70,13 +70,15 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, currentPage, isAdminLoggedI
     <header className="bg-white shadow-md sticky top-0 z-50" role="banner">
       {/* Main Header */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        {/* UPDATED: Changed h-20 to h-24 to accommodate bigger logo */}
+        <div className="flex items-center justify-between h-24"> 
           <div className="flex-shrink-0">
             <button onClick={() => navigateTo('home')} className="flex items-center space-x-3">
               <img 
                 src="/images/logofinaltrans.png" 
                 alt="NAAWT Logo" 
-                className="h-10 w-10 sm:h-12 sm:w-12 object-contain" 
+                // UPDATED: Significantly increased height/width classes for visibility
+                className="h-16 w-16 sm:h-20 sm:w-20 object-contain" 
               />
               <span className="lg:hidden text-slate-800 text-base font-extrabold lowercase">nawat</span>
               <span className="hidden lg:inline-block text-slate-800 text-base sm:text-lg md:text-2xl lg:text-3xl font-extrabold tracking-tight">NADEEM AHMED ALUMINUM & WOOD TR LLC</span>
