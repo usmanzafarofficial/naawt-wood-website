@@ -20,11 +20,22 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, navigateTo }) =
 
     try {
       const response = await authLogin(username, password);
+      // Save token and username
       setAuthToken(response.token);
-      localStorage.setItem('adminUsername', response.user.username);
+      localStorage.setItem('adminUsername', response.user?.username || username);
+
+      // Notify parent and navigate
       onLoginSuccess(response.token);
+      // update URL to /admin so App routing switches view
+      if (navigateTo) {
+        navigateTo('admin');
+      } else {
+        try { window.history.pushState({}, '', '/admin'); } catch {};
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+      // Show backend error message when available
+      const msg = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      setError(msg);
       setPassword('');
     } finally {
       setIsLoading(false);

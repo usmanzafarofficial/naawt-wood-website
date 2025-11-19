@@ -37,7 +37,7 @@ const upload = multer({ storage });
 
 // ==================== AUTH ENDPOINTS ====================
 
-// Admin Login
+// Admin Login - Keep the existing one that uses database
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -388,3 +388,5 @@ app.listen(PORT, () => {
   console.log('🔐 Admin API available at /api/auth');
   console.log('🛍️  Products API available at /api/products');
 });
+
+// Remove the duplicate endpoint at the bottom - it's causing conflicts
