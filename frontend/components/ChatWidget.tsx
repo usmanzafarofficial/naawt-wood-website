@@ -4,13 +4,14 @@ interface Message {
   text: string;
   sender: 'user' | 'bot';
   isFallback?: boolean;
+  isContactSuggestion?: boolean; // New flag for contact suggestions
 }
 
 const ChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { text: "Welcome to NAAWT.COM! How can I help you today?", sender: 'bot' },
-    { text: "Ask about products, services, or request a quote.", sender: 'bot' },
+    { text: "Ask about our UAE-based wood & aluminum pallets, services, or request a quote.", sender: 'bot' },
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
@@ -27,6 +28,104 @@ const ChatWidget: React.FC = () => {
     }
   }, [messages, isOpen, isBotTyping]);
 
+  // Enhanced knowledge base with more keywords
+  const getBotResponse = (userText: string): Message => {
+    const text = userText.toLowerCase();
+    
+    // Fallback keywords - topics the bot cannot handle
+    const fallbackKeywords = [
+      'weather', 'joke', 'opinion', 'personal', 'love', 'hate', 
+      'politics', 'religion', 'sports', 'movie', 'food', 'music',
+      'time', 'date', 'math', 'calculate', 'history', 'science',
+      'philosophy', 'meaning of life', 'advice', 'therapy', 'universe',
+      'quantum', 'love life', 'future', 'dream', 'hobby', 'pet', 'book',
+      'game', 'celebrity', 'gossip', 'stock', 'crypto', 'investment'
+    ];
+    
+    // Check for fallback first
+    const isFallback = fallbackKeywords.some(keyword => 
+      text.includes(keyword)
+    );
+    
+    if (isFallback) {
+      return {
+        text: "I'm unable to answer that. For business inquiries, please contact us directly.",
+        sender: 'bot',
+        isFallback: true
+      };
+    }
+    
+    // Enhanced keyword-based responses
+    if (text.includes('quote') || text.includes('price') || text.includes('cost') || text.includes('estimate')) {
+      return {
+        text: "You can get a quote for our Dubai & Sharjah-based wood and aluminum pallets by clicking the 'Get a Quote' button on our website or by visiting our contact page.",
+        sender: 'bot'
+      };
+    } 
+    if (text.includes('product') || text.includes('pallet') || text.includes('order') || text.includes('wood') || text.includes('aluminum') || text.includes('timber')) {
+      return {
+        text: "We offer a variety of pallets including new wooden, used wooden, aluminum, plastic, and heat treated pallets suitable for UAE markets. Visit our products page to see our full range.",
+        sender: 'bot'
+      };
+    } 
+    if (text.includes('contact') || text.includes('phone') || text.includes('email') || text.includes('address') || text.includes('location')) {
+      return {
+        text: "You can contact us via phone, email, or our contact form. For quick assistance, you can also message us on WhatsApp.",
+        sender: 'bot',
+        isContactSuggestion: true // Flag to show contact options
+      };
+    } 
+    if (text.includes('delivery') || text.includes('shipping') || text.includes('dispatch') || text.includes('uae') || text.includes('dubai') || text.includes('sharjah')) {
+      return {
+        text: "We offer reliable delivery services across the UAE, including Dubai and Sharjah. Delivery times depend on the order type and location.",
+        sender: 'bot'
+      };
+    } 
+    if (text.includes('sustain') || text.includes('environment') || text.includes('recycle') || text.includes('eco') || text.includes('green')) {
+      return {
+        text: "We are committed to sustainability in the UAE. Our operations focus on refurbishing and recycling wood and aluminum materials to minimize waste and promote a circular economy.",
+        sender: 'bot'
+      };
+    } 
+    if (text.includes('certif') || text.includes('stand') || text.includes('qualit') || text.includes('ispm')) {
+      return {
+        text: "We adhere to international standards including ISPM 15 for wood packaging. Our quality processes ensure compliance for global trade.",
+        sender: 'bot'
+      };
+    } 
+    if (text.includes('manufactur') || text.includes('repair') || text.includes('refurbish')) {
+      return {
+        text: "Our Dubai & Sharjah facilities provide comprehensive services including manufacturing new pallets, and refurbishing used ones to extend their lifecycle.",
+        sender: 'bot'
+      };
+    } 
+    if (text.includes('hello') || text.includes('hi') || text.includes('hey')) {
+      return {
+        text: "Hello! How can I assist you with our wood and aluminum pallets or services today?",
+        sender: 'bot'
+      };
+    }
+    if (text.includes('thank')) {
+      return {
+        text: "You're welcome! If you have any more questions, feel free to ask.",
+        sender: 'bot'
+      };
+    }
+    if (text.includes('help')) {
+      return {
+        text: "I can help you with information about our products, services, quotes, and contact details. What specifically would you like to know?",
+        sender: 'bot'
+      };
+    }
+    
+    // Default response if no keywords match
+    return {
+      text: "Thanks for your message! For more specific questions about our wood and aluminum solutions in the UAE, please visit our contact page or message us on WhatsApp.",
+      sender: 'bot',
+      isContactSuggestion: true
+    };
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim() === '' || isBotTyping) return;
@@ -38,61 +137,7 @@ const ChatWidget: React.FC = () => {
 
     // Simulate bot response with a delay
     setTimeout(() => {
-      // Check if the question is outside our knowledge base
-      const fallbackKeywords = [
-        'weather', 'joke', 'opinion', 'personal', 'love', 'hate', 
-        'politics', 'religion', 'sports', 'movie', 'food', 'music',
-        'time', 'date', 'math', 'calculate', 'history', 'science',
-        'philosophy', 'meaning of life', 'advice', 'therapy'
-      ];
-      
-      const isFallback = fallbackKeywords.some(keyword => 
-        userMessage.text.toLowerCase().includes(keyword)
-      );
-      
-      let botResponse: Message;
-      if (isFallback) {
-        botResponse = {
-          text: "I am not able to answer that.",
-          sender: 'bot',
-          isFallback: true
-        };
-      } else {
-        // Generate a generic response based on keywords
-        const text = userMessage.text.toLowerCase();
-        if (text.includes('quote') || text.includes('price') || text.includes('cost')) {
-          botResponse = {
-            text: "You can get a quote by clicking the 'Get a Quote' button on our website or by visiting our contact page.",
-            sender: 'bot'
-          };
-        } else if (text.includes('product') || text.includes('pallet') || text.includes('order')) {
-          botResponse = {
-            text: "We offer a variety of pallets including new wooden, used wooden, plastic, and heat treated pallets. Visit our products page to see our full range.",
-            sender: 'bot'
-          };
-        } else if (text.includes('contact') || text.includes('phone') || text.includes('email')) {
-          botResponse = {
-            text: "You can contact us at 01234 567 890 or email us at sales@naawt.com. For quick questions, you can also message us on WhatsApp.",
-            sender: 'bot'
-          };
-        } else if (text.includes('delivery') || text.includes('shipping') || text.includes('dispatch')) {
-          botResponse = {
-            text: "We offer next day delivery on stock items placed before 12pm. For custom orders, delivery times may vary.",
-            sender: 'bot'
-          };
-        } else if (text.includes('sustain') || text.includes('environment') || text.includes('recycle')) {
-          botResponse = {
-            text: "We are committed to sustainability. We refurbish and recycle pallets to minimize waste and offer environmentally friendly solutions.",
-            sender: 'bot'
-          };
-        } else {
-          botResponse = {
-            text: "Thanks for your message! For more specific questions, please visit our contact page or message us on WhatsApp.",
-            sender: 'bot'
-          };
-        }
-      }
-      
+      const botResponse = getBotResponse(userMessage.text);
       setMessages(prev => [...prev, botResponse]);
       setIsBotTyping(false);
     }, 1000); // Simulate processing time
@@ -120,9 +165,24 @@ const ChatWidget: React.FC = () => {
                   <div className={`max-w-[80%] px-3 py-2 rounded-lg ${msg.sender === 'user' ? 'bg-green-600 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none'}`}>
                     {msg.isFallback ? (
                       <p>
-                        I am not able to answer that. For more specific questions, please message us on{' '}
-                        <a href="https://wa.me/441234567890?text=Hello%20NAAWT.COM,%20I%20have%20a%20question." target="_blank" rel="noopener noreferrer" className="text-green-800 underline font-bold">
+                        {msg.text} For more specific questions, please{' '}
+                        <a href="#contact" className="text-green-800 underline font-bold">
+                          contact us
+                        </a>{' '}
+                        or message us on{' '}
+                        <a href="https://wa.me/+971555302154?text=Hello%20NAAWT.COM,%20I%20have%20a%20question." target="_blank" rel="noopener noreferrer" className="text-green-800 underline font-bold">
                           WhatsApp.
+                        </a>
+                      </p>
+                    ) : msg.isContactSuggestion ? (
+                      <p>
+                        {msg.text}{' '}
+                        <a href="#contact" className="text-green-800 underline font-bold">
+                          Contact Us
+                        </a>{' '}
+                        or{' '}
+                        <a href="https://wa.me/+971555302154?text=Hello%20NAAWT.COM,%20I%20have%20a%20question." target="_blank" rel="noopener noreferrer" className="text-green-800 underline font-bold">
+                          WhatsApp
                         </a>
                       </p>
                     ) : (

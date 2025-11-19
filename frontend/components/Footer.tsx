@@ -26,16 +26,7 @@ const Footer: React.FC<FooterProps> = ({ navigateTo }) => {
             </p>
             <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
                 <h4 className="font-bold text-gray-800 text-center text-sm mb-2">Trusted & Reviewed</h4>
-                 <div className="flex justify-center items-center space-x-4">
-                    <div className="text-center text-xs text-gray-600">
-                        <p className="font-bold text-lg">ISO 9001</p>
-                        <p>Quality</p>
-                    </div>
-                     <div className="text-center text-xs text-gray-600">
-                        <p className="font-bold text-lg">ISO 14001</p>
-                        <p>Environmental</p>
-                    </div>
-                 </div>
+            
             </div>
           </div>
 
