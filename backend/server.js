@@ -340,15 +340,42 @@ app.get('/api/quotes', verifyToken, async (req, res) => {
   }
 });
 
+// Create Quote - Update this endpoint
 // Create Quote
 app.post('/api/quotes', async (req, res) => {
   try {
-    const { customerName, customerEmail, customerPhone, productIds, details } = req.body;
+    const { 
+      customerName, 
+      customerEmail, 
+      customerPhone, 
+      customerCompany, 
+      productIds, 
+      details, 
+      deliveryDate, 
+      specialRequirements, 
+      address 
+    } = req.body;
+
+    if (!customerName || !customerEmail || !customerPhone || !address) {
+      return res.status(400).json({ 
+        message: 'Missing required fields' 
+      });
+    }
 
     const connection = await pool.getConnection();
     const [result] = await connection.query(
-      'INSERT INTO quotes (customer_name, customer_email, customer_phone, product_ids, details) VALUES (?, ?, ?, ?, ?)',
-      [customerName, customerEmail, customerPhone, JSON.stringify(productIds), details]
+      'INSERT INTO quotes (customer_name, customer_email, customer_phone, customer_company, product_ids, details, delivery_date, special_requirements, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        customerName, 
+        customerEmail, 
+        customerPhone, 
+        customerCompany || null,
+        JSON.stringify(productIds || []),
+        details || null,
+        deliveryDate || null,
+        specialRequirements || null,
+        address
+      ]
     );
     connection.release();
 
@@ -358,7 +385,7 @@ app.post('/api/quotes', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating quote:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

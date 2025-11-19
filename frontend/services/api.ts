@@ -1,3 +1,4 @@
+// src/services/api.ts
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const getAuthToken = () => localStorage.getItem('adminToken');
@@ -235,14 +236,20 @@ export const getQuotes = async () => {
   return response.json();
 };
 
+// Updated createQuote function to match server expectations and use the API_URL constant
 export const createQuote = async (quoteData: {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  customerCompany?: string;
   productIds: number[];
-  details: string;
+  details?: string;
+  deliveryDate?: string;
+  specialRequirements?: string;
+  address: string;
 }) => {
-  const response = await fetch(`${API_URL}/quotes`, {
+  const response = await fetch(`${API_URL}/quotes`, // Resolves to http://localhost:5000/api/quotes
+    {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(quoteData),
