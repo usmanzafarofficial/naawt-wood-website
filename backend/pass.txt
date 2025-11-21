@@ -1,0 +1,19 @@
+database pass = chye44N[m*q#
+User: naawkszi_naawt
+
+Database: naawkszi_naawt_db
+
+
+NODE_ENV=development
+PORT=5000
+DB_HOST=localhost
+DB_USER=naawkszi_naawt
+DB_PASSWORD=chye44N[m*q#
+DB_NAME=naawkszi_naawt_db
+JWT_SECRET=naawt_super_secret_key_2025
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin
+FILE_UPLOAD_PATH=./uploads
+
+
+new database pass = +7bdAe]DaGo#

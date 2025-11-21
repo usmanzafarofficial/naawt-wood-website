@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 
 dotenv.config();
@@ -17,6 +17,15 @@ const pool = require('./config/database');
 app.use(cors());
 app.use(express.json());
 app.use(express.static('uploads'));
+
+// Health Check
+app.get('/', (req, res) => {
+  res.json({ message: 'Backend API is running', status: 'OK' });
+});
+
+app.get('/api', (req, res) => {
+  res.json({ message: 'Backend API is running at /api', status: 'OK' });
+});
 
 // File Upload Configuration
 const storage = multer.diskStorage({
@@ -37,7 +46,7 @@ const upload = multer({ storage });
 
 // ==================== AUTH ENDPOINTS ====================
 
-// Admin Login - Keep the existing one that uses database
+// Admin Login
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -340,25 +349,24 @@ app.get('/api/quotes', verifyToken, async (req, res) => {
   }
 });
 
-// Create Quote - Update this endpoint
 // Create Quote
 app.post('/api/quotes', async (req, res) => {
   try {
-    const { 
-      customerName, 
-      customerEmail, 
-      customerPhone, 
-      customerCompany, 
-      productIds, 
-      details, 
-      deliveryDate, 
-      specialRequirements, 
-      address 
+    const {
+      customerName,
+      customerEmail,
+      customerPhone,
+      customerCompany,
+      productIds,
+      details,
+      deliveryDate,
+      specialRequirements,
+      address
     } = req.body;
 
     if (!customerName || !customerEmail || !customerPhone || !address) {
-      return res.status(400).json({ 
-        message: 'Missing required fields' 
+      return res.status(400).json({
+        message: 'Missing required fields'
       });
     }
 
@@ -366,9 +374,9 @@ app.post('/api/quotes', async (req, res) => {
     const [result] = await connection.query(
       'INSERT INTO quotes (customer_name, customer_email, customer_phone, customer_company, product_ids, details, delivery_date, special_requirements, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
-        customerName, 
-        customerEmail, 
-        customerPhone, 
+        customerName,
+        customerEmail,
+        customerPhone,
         customerCompany || null,
         JSON.stringify(productIds || []),
         details || null,
@@ -402,7 +410,7 @@ app.put('/api/quotes/:id', verifyToken, async (req, res) => {
     res.json({ message: 'Quote updated successfully' });
   } catch (error) {
     console.error('Error updating quote:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
@@ -415,5 +423,3 @@ app.listen(PORT, () => {
   console.log('🔐 Admin API available at /api/auth');
   console.log('🛍️  Products API available at /api/products');
 });
-
-// Remove the duplicate endpoint at the bottom - it's causing conflicts
