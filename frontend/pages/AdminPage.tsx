@@ -8,8 +8,8 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  updateOrderStatus,
-  updateQuoteStatus,
+  updateOrderStatus as apiUpdateOrderStatus,
+  updateQuoteStatus as apiUpdateQuoteStatus,
   changePassword,
 } from '../services/api';
 
@@ -25,10 +25,17 @@ interface Order {
 interface Quote {
   id: string;
   customer: string;
+  email: string;
+  phone: string;
+  company?: string;
   product: string;
   quantity: number;
   date: string;
   status: 'pending' | 'quoted' | 'rejected';
+  details?: string;
+  deliveryDate?: string;
+  specialRequirements?: string;
+  address: string;
 }
 
 interface AdminPageProps {
@@ -40,6 +47,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'orders' | 'quotes' | 'products' | 'settings'>('products');
   const [orders, setOrders] = useState<Order[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -50,11 +58,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
   const [changePasswordMessage, setChangePasswordMessage] = useState('');
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({ 
-    name: '', 
+  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
+    name: '',
     category: '',
     categorySlug: '',
-    description: '', 
+    description: '',
     imageUrl: '',
     specifications: {
       dimensions: '',
@@ -114,10 +122,17 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
         return {
           id: quote.id.toString(),
           customer: quote.customer_name,
+          email: quote.customer_email,
+          phone: quote.customer_phone,
+          company: quote.customer_company,
           product: productNames,
           quantity: 1,
           date: new Date(quote.created_at).toISOString().split('T')[0],
           status: quote.status,
+          details: quote.details,
+          deliveryDate: quote.delivery_date,
+          specialRequirements: quote.special_requirements,
+          address: quote.address,
         };
       }));
     } catch (error) {
@@ -145,8 +160,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
         setImagePreview(result);
         // In a real app, you'd upload to a server
         // For now, we'll save as base64
-        setNewProduct({...newProduct, imageUrl: result});
-        
+        setNewProduct({ ...newProduct, imageUrl: result });
+
         // Simulate upload progress
         setUploadProgress(0);
         const interval = setInterval(() => {
@@ -179,7 +194,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
       // Handle image upload
       if (newProduct.imageUrl.startsWith('data:')) {
         const blob = await (await fetch(newProduct.imageUrl)).blob();
-        formData.append('image', blob);
+        const ext = blob.type.split('/')[1] || 'jpg';
+        formData.append('image', blob, `image.${ext}`);
       }
 
       if (editingProduct) {
@@ -191,11 +207,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
       await loadData();
 
       // Reset form
-      setNewProduct({ 
-        name: '', 
+      setNewProduct({
+        name: '',
         category: '',
         categorySlug: '',
-        description: '', 
+        description: '',
         imageUrl: '',
         specifications: {
           dimensions: '',
@@ -225,7 +241,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
 
   const handleDeleteProduct = async (id: number | string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
-    
+
     try {
       await deleteProduct(id);
       await loadData();
@@ -235,11 +251,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
   };
 
   const handleCancelEdit = () => {
-    setNewProduct({ 
-      name: '', 
+    setNewProduct({
+      name: '',
       category: '',
       categorySlug: '',
-      description: '', 
+      description: '',
       imageUrl: '',
       specifications: {
         dimensions: '',
@@ -271,7 +287,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
 
   const updateOrderStatus = async (id: string, status: Order['status']) => {
     try {
-      await updateOrderStatus(id, status);
+      await apiUpdateOrderStatus(id, status);
       await loadData();
     } catch (error) {
       alert(`Error: ${error instanceof Error ? error.message : 'Failed to update order'}`);
@@ -280,7 +296,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
 
   const updateQuoteStatus = async (id: string, status: Quote['status']) => {
     try {
-      await updateQuoteStatus(id, status);
+      await apiUpdateQuoteStatus(id, status);
       await loadData();
     } catch (error) {
       alert(`Error: ${error instanceof Error ? error.message : 'Failed to update quote'}`);
@@ -302,13 +318,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
           <div className="flex space-x-2">
-            <button 
+            <button
               onClick={() => navigateTo('home')}
               className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg"
             >
               Back to Website
             </button>
-            <button 
+            <button
               onClick={onLogout}
               className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
             >
@@ -324,57 +340,224 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
               className={`py-2 px-4 font-medium text-sm ${activeTab === 'products' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setActiveTab('products')}
             >
-              📦 Products
+              Products
             </button>
             <button
               className={`py-2 px-4 font-medium text-sm ${activeTab === 'orders' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setActiveTab('orders')}
             >
-              🛒 Orders
+              Orders
             </button>
             <button
               className={`py-2 px-4 font-medium text-sm ${activeTab === 'quotes' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setActiveTab('quotes')}
             >
-              💬 Quotes
+              Quotes
             </button>
             <button
               className={`py-2 px-4 font-medium text-sm ${activeTab === 'settings' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setActiveTab('settings')}
             >
-              ⚙️ Settings
+              Settings
             </button>
           </div>
+
+          {/* Products Tab */}
+          {activeTab === 'products' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Products</h2>
+                <button
+                  onClick={() => setIsAddingProduct(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"
+                >
+                  Add New Product
+                </button>
+              </div>
+
+              {isAddingProduct ? (
+                <div className="bg-gray-50 p-6 rounded-lg mb-6">
+                  <h3 className="text-xl font-bold mb-4">{editingProduct ? 'Edit Product' : 'Add New Product'}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Name</label>
+                      <input
+                        type="text"
+                        value={newProduct.name}
+                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                        className="w-full p-2 border border-gray-300 rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Category</label>
+                      <select
+                        value={newProduct.category}
+                        onChange={(e) => {
+                          const selectedCat = PRODUCT_CATEGORIES.find(c => c.name === e.target.value);
+                          setNewProduct({
+                            ...newProduct,
+                            category: e.target.value,
+                            categorySlug: selectedCat ? selectedCat.slug : ''
+                          });
+                        }}
+                        className="w-full p-2 border border-gray-300 rounded"
+                      >
+                        <option value="">Select Category</option>
+                        {PRODUCT_CATEGORIES.map((cat) => (
+                          <option key={cat.slug} value={cat.name}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                      <textarea
+                        value={newProduct.description}
+                        onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                        className="w-full p-2 border border-gray-300 rounded"
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Image</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="w-full p-2 border border-gray-300 rounded"
+                      />
+                      {imagePreview && (
+                        <div className="mt-2">
+                          <img src={imagePreview} alt="Preview" className="h-32 w-32 object-cover rounded" />
+                        </div>
+                      )}
+                      {uploadProgress > 0 && uploadProgress < 100 && (
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                          <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Dimensions</label>
+                      <input
+                        type="text"
+                        value={newProduct.specifications.dimensions}
+                        onChange={(e) => setNewProduct({
+                          ...newProduct,
+                          specifications: { ...newProduct.specifications, dimensions: e.target.value }
+                        })}
+                        className="w-full p-2 border border-gray-300 rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Load Capacity</label>
+                      <input
+                        type="text"
+                        value={newProduct.specifications.loadCapacity}
+                        onChange={(e) => setNewProduct({
+                          ...newProduct,
+                          specifications: { ...newProduct.specifications, loadCapacity: e.target.value }
+                        })}
+                        className="w-full p-2 border border-gray-300 rounded"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-6">
+                    <button
+                      onClick={handleCancelEdit}
+                      className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddProduct}
+                      className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                    >
+                      {editingProduct ? 'Update Product' : 'Save Product'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {products.map((product) => (
+                        <tr key={product.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <img
+                              src={product.imageUrl.startsWith('http') ? product.imageUrl : `${import.meta.env.VITE_API_URL?.replace('/api', '')}/uploads/${product.imageUrl}`}
+                              alt={product.name}
+                              className="h-12 w-12 object-cover rounded"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=No+Image';
+                              }}
+                            />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{product.category}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button
+                              onClick={() => handleEditProduct(product)}
+                              className="text-indigo-600 hover:text-indigo-900 mr-4"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Orders Tab */}
           {activeTab === 'orders' && (
             <div>
-              <h2 className="text-2xl font-semibold mb-4">Orders Management</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Orders</h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
-                  <thead className="bg-gray-100">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Order ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Customer</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Product</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Qty</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {orders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm text-gray-700">{order.id}</td>
-                        <td className="px-6 py-4 text-sm font-medium">{order.customer}</td>
-                        <td className="px-6 py-4 text-sm">{order.product}</td>
-                        <td className="px-6 py-4 text-sm">{order.quantity}</td>
-                        <td className="px-6 py-4 text-sm">{order.date}</td>
-                        <td className="px-6 py-4 text-sm">
+                      <tr key={order.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{order.id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.customer}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.product}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.quantity}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.date}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <select
                             value={order.status}
                             onChange={(e) => updateOrderStatus(order.id, e.target.value as Order['status'])}
-                            className="border border-gray-300 rounded px-2 py-1"
+                            className={`text-sm rounded-full px-3 py-1 font-semibold ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                              order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-gray-100 text-gray-800'
+                              }`}
                           >
                             <option value="pending">Pending</option>
                             <option value="processing">Processing</option>
@@ -393,38 +576,48 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
           {/* Quotes Tab */}
           {activeTab === 'quotes' && (
             <div>
-              <h2 className="text-2xl font-semibold mb-4">Quotes Management</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Quotes</h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
-                  <thead className="bg-gray-100">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Quote ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Customer</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Product</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Qty</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {quotes.map((quote) => (
-                      <tr key={quote.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm text-gray-700">{quote.id}</td>
-                        <td className="px-6 py-4 text-sm font-medium">{quote.customer}</td>
-                        <td className="px-6 py-4 text-sm">{quote.product}</td>
-                        <td className="px-6 py-4 text-sm">{quote.quantity}</td>
-                        <td className="px-6 py-4 text-sm">{quote.date}</td>
-                        <td className="px-6 py-4 text-sm">
+                      <tr key={quote.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{quote.id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{quote.customer}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{quote.product}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{quote.date}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <select
                             value={quote.status}
                             onChange={(e) => updateQuoteStatus(quote.id, e.target.value as Quote['status'])}
-                            className="border border-gray-300 rounded px-2 py-1"
+                            className={`text-sm rounded-full px-3 py-1 font-semibold ${quote.status === 'quoted' ? 'bg-green-100 text-green-800' :
+                              quote.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                'bg-yellow-100 text-yellow-800'
+                              }`}
                           >
                             <option value="pending">Pending</option>
                             <option value="quoted">Quoted</option>
                             <option value="rejected">Rejected</option>
                           </select>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => setSelectedQuote(quote)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                          >
+                            View Details
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -433,316 +626,139 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigateTo, onLogout }) => {
             </div>
           )}
 
-          {/* Products Tab */}
-          {activeTab === 'products' && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-semibold">Product Management</h2>
-                {!isAddingProduct && (
-                  <button
-                    onClick={() => setIsAddingProduct(true)}
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"
-                  >
-                    + Add Product
-                  </button>
-                )}
-              </div>
-
-              {isAddingProduct && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-300">
-                  <h3 className="text-lg font-medium mb-4">{editingProduct ? '✏️ Edit Product' : '➕ Add New Product'}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Product Image Upload */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Product Image *</label>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                        {imagePreview ? (
-                          <div className="relative">
-                            <img src={imagePreview} alt="Preview" className="h-40 w-40 object-cover rounded mx-auto" />
-                            {uploadProgress > 0 && uploadProgress < 100 && (
-                              <div className="mt-2 bg-gray-200 rounded h-2">
-                                <div className="bg-green-600 h-2 rounded" style={{width: `${uploadProgress}%`}}></div>
-                              </div>
-                            )}
-                            {uploadProgress === 100 && <p className="text-center text-green-600 mt-2">✅ Uploaded successfully!</p>}
-                          </div>
-                        ) : (
-                          <div className="text-center">
-                            <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                              <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-8l-3.172-3.172a4 4 0 00-5.656 0L28 20M8 20l3.172-3.172a4 4 0 015.656 0L28 20" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            <p className="mt-2 text-sm text-gray-600">Drag image here or click to upload</p>
-                          </div>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="mt-2 w-full"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
-                      <input
-                        type="text"
-                        value={newProduct.name}
-                        onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="E.g., New Standard Wooden Pallet"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-                      <select
-                        value={newProduct.category}
-                        onChange={(e) => {
-                          const selected = PRODUCT_CATEGORIES.find(c => c.name === e.target.value);
-                          setNewProduct({
-                            ...newProduct, 
-                            category: e.target.value,
-                            categorySlug: selected?.slug || ''
-                          });
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      >
-                        <option value="">Select a category</option>
-                        {PRODUCT_CATEGORIES.map(cat => (
-                          <option key={cat.slug} value={cat.name}>{cat.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Dimensions</label>
-                      <input
-                        type="text"
-                        value={newProduct.specifications.dimensions}
-                        onChange={(e) => setNewProduct({
-                          ...newProduct, 
-                          specifications: {...newProduct.specifications, dimensions: e.target.value}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="E.g., 1200 x 1000mm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Material</label>
-                      <select
-                        value={newProduct.specifications.material}
-                        onChange={(e) => setNewProduct({
-                          ...newProduct, 
-                          specifications: {...newProduct.specifications, material: e.target.value as 'Wood' | 'Plastic' | 'Presswood'}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      >
-                        <option value="Wood">Wood</option>
-                        <option value="Plastic">Plastic</option>
-                        <option value="Presswood">Presswood</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Load Capacity</label>
-                      <input
-                        type="text"
-                        value={newProduct.specifications.loadCapacity}
-                        onChange={(e) => setNewProduct({
-                          ...newProduct, 
-                          specifications: {...newProduct.specifications, loadCapacity: e.target.value}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="E.g., 1500kg Dynamic"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
-                      <input
-                        type="text"
-                        value={newProduct.specifications.weight || ''}
-                        onChange={(e) => setNewProduct({
-                          ...newProduct, 
-                          specifications: {...newProduct.specifications, weight: e.target.value}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="E.g., Approx. 25kg"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Entry Points</label>
-                      <select
-                        value={newProduct.specifications.entryPoints || '4-way'}
-                        onChange={(e) => setNewProduct({
-                          ...newProduct, 
-                          specifications: {...newProduct.specifications, entryPoints: e.target.value as '2-way' | '4-way'}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      >
-                        <option value="2-way">2-way</option>
-                        <option value="4-way">4-way</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Treatment</label>
-                      <input
-                        type="text"
-                        value={newProduct.specifications.treatment || ''}
-                        onChange={(e) => setNewProduct({
-                          ...newProduct, 
-                          specifications: {...newProduct.specifications, treatment: e.target.value as 'Heat-Treated (ISPM15)' | undefined}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="E.g., Heat-Treated (ISPM15)"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-                      <textarea
-                        value={newProduct.description}
-                        onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="Product description"
-                        rows={3}
-                      ></textarea>
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                      <textarea
-                        value={newProduct.specifications.notes || ''}
-                        onChange={(e) => setNewProduct({
-                          ...newProduct, 
-                          specifications: {...newProduct.specifications, notes: e.target.value}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="Additional notes"
-                        rows={2}
-                      ></textarea>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex space-x-2">
-                    <button
-                      onClick={handleAddProduct}
-                      className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"
-                    >
-                      {editingProduct ? '💾 Update Product' : '➕ Save Product'}
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg"
-                    >
-                      ❌ Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Products Table */}
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Image</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Category</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Material</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Capacity</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {products.map((product) => (
-                      <tr key={product.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <img src={product.imageUrl} alt={product.name} className="h-12 w-12 object-cover rounded" />
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{product.name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{product.category}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{product.specifications.material}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{product.specifications.loadCapacity}</td>
-                        <td className="px-6 py-4 text-sm space-x-2">
-                          <button 
-                            onClick={() => handleEditProduct(product)}
-                            className="text-blue-600 hover:text-blue-900 font-semibold"
-                          >
-                            ✏️ Edit
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="text-red-600 hover:text-red-900 font-semibold"
-                          >
-                            🗑️ Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="text-sm text-gray-600 mt-4">📊 Total Products: <strong>{products.length}</strong></p>
-            </div>
-          )}
           {/* Settings Tab */}
           {activeTab === 'settings' && (
-            <div>
-              <h2 className="text-2xl font-semibold mb-6">Admin Settings</h2>
-              
-              <div className="max-w-md bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold mb-4">🔐 Change Password</h3>
-                <form onSubmit={handleChangePassword} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+            <div className="max-w-md">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Settings</h2>
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="text-lg font-bold mb-4">Change Password</h3>
+                <form onSubmit={handleChangePassword}>
+                  <div className="mb-4">
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Current Password</label>
                     <input
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="Enter current password"
+                      className="w-full p-2 border border-gray-300 rounded"
+                      required
                     />
-                    <p className="text-xs text-gray-500 mt-1">Default: <code className="bg-white px-1">admin</code></p>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                  <div className="mb-4">
+                    <label className="block text-gray-700 text-sm font-bold mb-2">New Password</label>
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="Enter new password (min. 4 characters)"
+                      className="w-full p-2 border border-gray-300 rounded"
+                      required
                     />
                   </div>
-
-                  {changePasswordMessage && (
-                    <div className={`p-3 rounded text-sm ${changePasswordMessage.includes('✅') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                      {changePasswordMessage}
-                    </div>
-                  )}
-
                   <button
                     type="submit"
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
                   >
-                    🔄 Change Password
+                    Update Password
                   </button>
+                  {changePasswordMessage && (
+                    <p className="mt-4 text-center text-sm font-medium">
+                      {changePasswordMessage}
+                    </p>
+                  )}
                 </form>
-              </div>
-
-              <div className="mt-8 p-6 bg-blue-50 rounded-lg max-w-md">
-                <h3 className="text-lg font-semibold text-blue-900 mb-2">ℹ️ Admin Information</h3>
-                <p className="text-sm text-blue-800">
-                  <strong>Username:</strong> admin<br/>
-                  <strong>Current Password:</strong> admin<br/>
-                  <strong>Products Saved:</strong> {products.length}<br/>
-                  <strong>Session:</strong> Active ✅
-                </p>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Quote Details Modal */}
+      {selectedQuote && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-900">Quote Details #{selectedQuote.id}</h3>
+              <button
+                onClick={() => setSelectedQuote(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Customer Info</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                    <p><span className="font-semibold">Name:</span> {selectedQuote.customer}</p>
+                    <p><span className="font-semibold">Email:</span> {selectedQuote.email}</p>
+                    <p><span className="font-semibold">Phone:</span> {selectedQuote.phone}</p>
+                    {selectedQuote.company && <p><span className="font-semibold">Company:</span> {selectedQuote.company}</p>}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Request Info</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                    <p><span className="font-semibold">Date:</span> {selectedQuote.date}</p>
+                    <p><span className="font-semibold">Status:</span>
+                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-semibold ${selectedQuote.status === 'quoted' ? 'bg-green-100 text-green-800' :
+                        selectedQuote.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                        {selectedQuote.status.toUpperCase()}
+                      </span>
+                    </p>
+                    {selectedQuote.deliveryDate && <p><span className="font-semibold">Delivery Needed:</span> {selectedQuote.deliveryDate}</p>}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Products</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p>{selectedQuote.product}</p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Delivery Address</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="whitespace-pre-wrap">{selectedQuote.address}</p>
+                </div>
+              </div>
+
+              {(selectedQuote.details || selectedQuote.specialRequirements) && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Additional Details</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                    {selectedQuote.details && (
+                      <div>
+                        <p className="font-semibold text-gray-700">Project Details:</p>
+                        <p className="whitespace-pre-wrap">{selectedQuote.details}</p>
+                      </div>
+                    )}
+                    {selectedQuote.specialRequirements && (
+                      <div>
+                        <p className="font-semibold text-gray-700">Special Requirements:</p>
+                        <p className="whitespace-pre-wrap">{selectedQuote.specialRequirements}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setSelectedQuote(null)}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

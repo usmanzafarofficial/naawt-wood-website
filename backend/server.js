@@ -183,11 +183,12 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-// Add Product (with image upload)
+// Create Product
 app.post('/api/products', verifyToken, upload.single('image'), async (req, res) => {
   try {
     const { name, category, description, specifications } = req.body;
-    const imageUrl = req.file ? `http://localhost:5000/${req.file.filename}` : null;
+    // Store only the filename, frontend will construct the full URL
+    const imageUrl = req.file ? req.file.filename : null;
 
     const connection = await pool.getConnection();
     const [result] = await connection.query(
@@ -197,7 +198,7 @@ app.post('/api/products', verifyToken, upload.single('image'), async (req, res) 
         category,
         description,
         imageUrl,
-        JSON.stringify(specifications || {}),
+        typeof specifications === 'string' ? specifications : JSON.stringify(specifications || {}),
       ]
     );
     connection.release();
@@ -231,7 +232,8 @@ app.put('/api/products/:id', verifyToken, upload.single('image'), async (req, re
 
     let imageUrl = products[0].image_url;
     if (req.file) {
-      imageUrl = `http://localhost:5000/${req.file.filename}`;
+      // Store only the filename
+      imageUrl = req.file.filename;
     }
 
     await connection.query(
@@ -241,7 +243,7 @@ app.put('/api/products/:id', verifyToken, upload.single('image'), async (req, re
         category,
         description,
         imageUrl,
-        JSON.stringify(specifications || {}),
+        typeof specifications === 'string' ? specifications : JSON.stringify(specifications || {}),
         id,
       ]
     );

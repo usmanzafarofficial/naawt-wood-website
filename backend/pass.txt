@@ -17,3 +17,14 @@ FILE_UPLOAD_PATH=./uploads
 
 
 new database pass = +7bdAe]DaGo#
+
+NODE_ENV=production
+PORT=5000
+DB_HOST=localhost
+DB_USER=naawkszi_naawt
+DB_PASSWORD=+7bdAe]DaGo#
+DB_NAME=naawkszi_naawt_db
+JWT_SECRET=naawt_super_secret_key_2025
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin
+FILE_UPLOAD_PATH=./uploads

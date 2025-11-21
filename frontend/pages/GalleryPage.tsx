@@ -3,14 +3,15 @@ import React, { useState, useEffect } from 'react';
 interface GalleryItem {
   id: number;
   type: 'image' | 'video';
-  title: string;
+  title: string; // Keeping for data structure, but won't be displayed
   url: string;
   thumbnail?: string;
-  description: string;
+  description: string; // Keeping for data structure, but won't be displayed
 }
 
 const GalleryPage: React.FC = () => {
-  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
+  // Removed selectedItem state
+  const [activeVideoId, setActiveVideoId] = useState<number | null>(null); // New state for in-line video play
   const [isScrolling, setIsScrolling] = useState(false);
 
   const galleryItems: GalleryItem[] = [
@@ -45,6 +46,13 @@ const GalleryPage: React.FC = () => {
     };
   }, [isScrolling]);
 
+  const handleItemClick = (item: GalleryItem) => {
+    if (item.type === 'video') {
+      setActiveVideoId(item.id === activeVideoId ? null : item.id); // Toggle video play
+    }
+    // Images do nothing on click besides hover effects (unless you want them to open their full-size version, but that would require a modal-like behavior)
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <section className="bg-gradient-to-r from-green-700 to-green-900 text-white py-16">
@@ -63,18 +71,37 @@ const GalleryPage: React.FC = () => {
             {galleryItems.map((item, index) => (
               <div
                 key={item.id}
-                onClick={() => setSelectedItem(item)}
+                onClick={() => handleItemClick(item)} // Use the new click handler
                 className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-2xl group"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                {/* Adjusted aspect ratio for vertical content */}
+                {/* Media Container */}
                 <div className="relative aspect-[9/16] bg-gray-200 overflow-hidden">
-                  <img
-                    src={item.thumbnail}
-                    alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  {item.type === 'video' && (
+                  
+                  {/* Conditional rendering for Video Player or Thumbnail */}
+                  {item.type === 'video' && item.id === activeVideoId ? (
+                    // Video Player (In-line)
+                    <video
+                      controls
+                      autoPlay
+                      // Add w-full h-full object-cover to make it fill the container
+                      className="w-full h-full object-cover" 
+                      onClick={(e) => e.stopPropagation()} // Prevent closing on video controls interaction
+                    >
+                      <source src={item.url} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    // Thumbnail (for Images and inactive Videos)
+                    <img
+                      src={item.thumbnail}
+                      alt={`Thumbnail for ${item.type}`} // Simplified alt text
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  )}
+
+                  {/* Video Play Icon Overlay (only for videos that aren't currently active) */}
+                  {item.type === 'video' && item.id !== activeVideoId && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40">
                       <div className="bg-green-600 rounded-full p-3 transform transition-transform duration-300 group-hover:scale-110">
                         <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -83,64 +110,16 @@ const GalleryPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
-                  <span className={`inline-block px-3 py-1 text-sm font-semibold rounded-full ${
-                    item.type === 'image' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                  }`}>
-                    {item.type === 'image' ? 'Photo' : 'Video'}
-                  </span>
-                  <p className="mt-3 text-gray-600 text-sm line-clamp-2">{item.description}</p>
-                </div>
+                {/* Removed the entire p-6 div containing title, type tag, and description */}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Modal */}
-      {selectedItem && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4 transition-opacity duration-300"
-          onClick={(e) => e.target === e.currentTarget && setSelectedItem(null)}
-        >
-          <div className="relative bg-white rounded-lg shadow-2xl max-w-4xl max-h-[90vh] w-full flex flex-col items-center justify-center overflow-hidden">
-            <button
-              onClick={() => setSelectedItem(null)}
-              className="absolute top-4 right-4 bg-gray-900 text-white rounded-full p-2 hover:bg-gray-800 z-10 transition-colors duration-200"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <div className="w-full h-full flex items-center justify-center p-4 bg-black">
-              {selectedItem.type === 'image' ? (
-                <img
-                  src={selectedItem.url}
-                  alt={selectedItem.title}
-                  className="max-w-full max-h-[70vh] object-contain"
-                />
-              ) : (
-                <video
-                  controls
-                  autoPlay
-                  className="max-w-full max-h-[70vh] rounded-lg"
-                >
-                  <source src={selectedItem.url} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-              )}
-            </div>
-
-            <div className="p-6 w-full bg-gray-50">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedItem.title}</h2>
-              <p className="text-gray-700">{selectedItem.description}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed the entire Modal section */}
     </div>
   );
 };

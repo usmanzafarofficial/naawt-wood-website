@@ -80,7 +80,7 @@ const Header: React.FC<HeaderProps> = ({ navigateTo, currentPage, isAdminLoggedI
                 // UPDATED: Significantly increased height/width classes for visibility
                 className="h-16 w-16 sm:h-20 sm:w-20 object-contain" 
               />
-              <span className="lg:hidden text-slate-800 text-base font-extrabold lowercase">nawat</span>
+              <span className="lg:hidden text-slate-800 text-base font-extrabold ">NADEEM AHMED ALUMINUM <br /> & WOOD TR LLC</span>
               <span className="hidden lg:inline-block text-slate-800 text-base sm:text-lg md:text-2xl lg:text-3xl font-extrabold tracking-tight">NADEEM AHMED ALUMINUM & WOOD TR LLC</span>
             </button>
           </div>
